@@ -20,10 +20,10 @@ public class GamePrep1 extends JFrame implements ActionListener, KeyListener{
 	private WindowBorderGUI windowGUI;
 	private Title gameTitle;
 	private BG windowBG;
-	private int playerProjectileSpeed = 15;
+	private int playerProjectileSpeed = 25;
 	private List<Block> blockArray = new ArrayList<Block>();
-	private Menu titleMenu;
 	private List<MenuOption> menuOptions = new ArrayList<MenuOption>();
+	private Menu titleMenu;
 	private Clouds clouds;
 	
 	//State manager
@@ -73,7 +73,7 @@ public class GamePrep1 extends JFrame implements ActionListener, KeyListener{
 			option.optionLabel.setSize(option.getWidth(), option.getHeight());
 		}
 
-		//Alternative arraylist foreach method
+		//Alternative ArrayList for each method
 		//menuOptions.forEach(option -> option.optionLabel = new JLabel());
 		
 		//Create new menu populated with each option in the menuOptions list, and then update the menu's display

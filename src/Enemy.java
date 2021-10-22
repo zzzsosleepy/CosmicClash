@@ -1,4 +1,3 @@
-
 public class Enemy extends Sprite{
 
 	protected String graphicFile;
