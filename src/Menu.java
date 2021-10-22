@@ -4,8 +4,11 @@ import java.util.List;
 import javax.swing.ImageIcon;
 
 public class Menu {
+	//Active menu option index
 	protected int selectedIndex;
+	//Amount of options in menu
 	protected int optionCount;
+	//Menu options stored in an array list
 	protected List<MenuOption> options = new ArrayList<MenuOption>();
 	
 	public Menu(int selectedIndex, List<MenuOption> options) {

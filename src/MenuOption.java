@@ -3,9 +3,13 @@ import javax.swing.JLabel;
 
 public class MenuOption extends Sprite{
 	
+	//Default
 	private String defaultSprite;
+	//Selected
 	private String selectedSprite;
+	//Current
 	private String currentSprite;
+	
 	protected JLabel optionLabel;
 	protected ImageIcon optionIcon;
 	
