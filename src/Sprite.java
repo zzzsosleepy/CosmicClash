@@ -53,8 +53,9 @@ public class Sprite {
 		System.out.println("X, Y: " + this.x + "," + this.y);
 	}
 	
-	
-	
-	
-	
+	//Sets the X and Y position as well as location
+	public void SetVectors(int x, int y) {
+		setX(x);
+		setY(y);
+	}	
 }

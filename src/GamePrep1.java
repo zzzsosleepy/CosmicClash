@@ -21,6 +21,7 @@ public class GamePrep1 extends JFrame implements ActionListener, KeyListener{
 	private Title gameTitle;
 	private BG windowBG;
 	private int playerProjectileSpeed = 25;
+	private List<Ship> enemies = new ArrayList<Ship>();
 	private List<Block> blockArray = new ArrayList<Block>();
 	private List<MenuOption> menuOptions = new ArrayList<MenuOption>();
 	private Menu titleMenu;
@@ -40,8 +41,13 @@ public class GamePrep1 extends JFrame implements ActionListener, KeyListener{
 	private Container content;
 	
 	public GamePrep1() {
+		//Set window title
 		super("Cosmic Clash");
+		
+		//Set window size
 		setSize(GameProperties.SCREEN_WIDTH, GameProperties.SCREEN_HEIGHT);
+		
+		//Disable window resizing to ensure the window is always the same size
 		setResizable(false);
 		
 		//State setup
@@ -59,7 +65,7 @@ public class GamePrep1 extends JFrame implements ActionListener, KeyListener{
 		TitleLabel.setIcon(TitleImage);
 		TitleLabel.setSize(gameTitle.getWidth(), gameTitle.getHeight());
 		
-		//Create menu options and assign unselected and selected sprites to each option, then add each to menuOptions list
+		//Create menu options and assign unselected and selected sprite to each option, then add each to menuOptions list
 		MenuOption playOption = new MenuOption("PlayButton.png", "PlayButton_Selected.png", "PlayButton.png");
 		MenuOption exitOption = new MenuOption("ExitButton.png", "ExitButton_Selected.png", "ExitButton.png");
 		menuOptions.add(playOption);
@@ -102,12 +108,22 @@ public class GamePrep1 extends JFrame implements ActionListener, KeyListener{
 		WindowGUILabel.setSize(windowGUI.getWidth(), windowGUI.getHeight());
 		
 		//Player setup
-		playerShip = new Ship(5,1,"Ship01.png", playerProjectileSpeed);
+		playerShip = new Ship(5,1,"Ship01.png", "Ship01_Hurt.png", playerProjectileSpeed, true);
 		PlayerLabel = new JLabel();
+		playerShip.setShipLabel(PlayerLabel);
 		PlayerLabel.setVisible(false);
 		PlayerImage = new ImageIcon(getClass().getResource(playerShip.getFilename()));
 		PlayerLabel.setIcon(PlayerImage);
 		PlayerLabel.setSize(playerShip.getWidth(), playerShip.getHeight());
+		
+		//Enemy creation using 2D array
+		for(int x = 0; x < 13; x++) {
+			for(int y = 0; y < 13; y++) {
+				if (x > 7 && y > 3 && x < 11 && y < 9) {
+					CreateEnemy(x,y);
+				}
+			}
+		}
 		
 		//Block creation using 2D array
 		for(int x = 0; x < 13; x++) {
@@ -124,16 +140,11 @@ public class GamePrep1 extends JFrame implements ActionListener, KeyListener{
 		
 		
 		//Set storage class vectors
-		windowBG.setX(0);
-		windowBG.setY(0);
-		windowGUI.setX(0);
-		windowGUI.setY(0);
-		clouds.setX(0);
-		clouds.setY(0);
-		gameTitle.setX((GameProperties.SCREEN_WIDTH / 2) - (gameTitle.getWidth() / 2) - 8);
-		gameTitle.setY(96);
-		playerShip.setX(48);
-		playerShip.setY(186);
+		windowBG.SetVectors(0,0);
+		windowGUI.SetVectors(0,0);
+		clouds.SetVectors(0,0);
+		gameTitle.SetVectors((GameProperties.SCREEN_WIDTH / 2) - (gameTitle.getWidth() / 2) - 8, 96);
+		playerShip.SetVectors(48, 186);
 		
 		//Add the layered pane to the JFrame
 		add(layeredPane);
@@ -148,6 +159,7 @@ public class GamePrep1 extends JFrame implements ActionListener, KeyListener{
 		exitOption.setY((GameProperties.SCREEN_HEIGHT / 2) + 32);
 		layeredPane.add(exitOption.optionLabel, Integer.valueOf(99));
 		
+		//LayeredPane is used to implement z-ordering for labels
 		//LayeredPane depth must be an Integer, changing LayeredPane dynamically must be an int!!
 		//Add LayerPane to the JFrame and add labels to the LayeredPane
 		layeredPane.add(WindowGUILabel, Integer.valueOf(99));
@@ -177,16 +189,49 @@ public class GamePrep1 extends JFrame implements ActionListener, KeyListener{
 		Block myBlock;
 		JLabel BlockLabel;
 		ImageIcon BlockImage;
+		//Instantiate new block
 		myBlock = new Block();
+		//Create a new label for the block
 		BlockLabel = new JLabel();
+		//Attach an image to the block's label
 		BlockImage = new ImageIcon(getClass().getResource(myBlock.getFilename()));
 		BlockLabel.setIcon(BlockImage);
+		//Set the size of the block
 		BlockLabel.setSize(myBlock.getWidth(), myBlock.getHeight());
-		myBlock.setX(x * 32);
-		myBlock.setY(y * 32);
+		//Set the vectors of the block
+		myBlock.SetVectors(x * 32, y * 32);
+		//Add the block's label to the layered pane for z-sorting
 		layeredPane.add(BlockLabel, Integer.valueOf(98));
+		//Add the created block to the array of blocks
 		blockArray.add(myBlock);
+		//Update the label's location
 		BlockLabel.setLocation(myBlock.getX(), myBlock.getY());
+	}
+	
+	//Creates an enemy ship at specific x, y coordinates and adds them to the enemies array
+	public void CreateEnemy(int x, int y) {
+		Ship enemy;
+		JLabel EnemyLabel;
+		ImageIcon EnemyImage;
+		//Instantiate new enemy
+		enemy = new Ship(1, 1, "EnemyShip01.png", "EnemyShip01_Hurt.png", 1, false);
+		//Create a new label for the enemy
+		EnemyLabel = new JLabel();
+		enemy.setShipLabel(EnemyLabel);
+		EnemyLabel.setVisible(false);
+		//Attach an image to the enemy's label
+		EnemyImage = new ImageIcon(getClass().getResource(enemy.getFilename()));
+		EnemyLabel.setIcon(EnemyImage);
+		//Set the size of the enemy
+		EnemyLabel.setSize(enemy.getWidth(), enemy.getHeight());
+		//Set the vectors of the enemy
+		enemy.SetVectors(x * 32, y * 32);
+		//Add the enemy's label to the layered pane for z-sorting
+		layeredPane.add(EnemyLabel, Integer.valueOf(98));
+		//Add the created enemy to the array of enemies
+		enemies.add(enemy);
+		//Update the label's location
+		EnemyLabel.setLocation(enemy.getX(), enemy.getY());
 	}
 	
 	//Main method
@@ -212,16 +257,29 @@ public class GamePrep1 extends JFrame implements ActionListener, KeyListener{
 			//Up down movement
 			//UP MOVEMENT
 			if (e.getKeyCode() == KeyEvent.VK_UP) {
-				dy -= GameProperties.CHARACTER_STEP;
-				if (dy + playerShip.getHeight() < 0) {
-					dy = GameProperties.SCREEN_HEIGHT;
+				//If the player is below 74, allow movement up
+				//This is to prevent the player from moving offscreen
+				if (dy >= 74) {					
+					dy -= GameProperties.CHARACTER_STEP;
+					if (dy + playerShip.getHeight() < 0) {
+						dy = GameProperties.SCREEN_HEIGHT;
+					}
 				}
 			//DOWN MOVEMENT
 			} else if(e.getKeyCode() == KeyEvent.VK_DOWN) {
-				dy += GameProperties.CHARACTER_STEP;
-				if (dy > GameProperties.SCREEN_HEIGHT) {
-					dy = -1 * playerShip.getHeight();
+				//If the player is above 314, allow movement down
+				//This is to prevent the player from moving offscreen
+				if (dy <= 314) {
+					dy += GameProperties.CHARACTER_STEP;
+					if (dy > GameProperties.SCREEN_HEIGHT) {
+						dy = -1 * playerShip.getHeight();
+					}					
 				}
+			}
+			//If the escape key is pressed during game-play, return to title screen
+			if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+				ToggleTitle();
+				stateManager.setGameState(0);
 			}
 			
 			//Update player label location
@@ -264,18 +322,26 @@ public class GamePrep1 extends JFrame implements ActionListener, KeyListener{
 	
 	//Toggles the display of the title labels and player label depending on the current game state
 	public void ToggleTitle() {
+		//If the game state is 0, hide the title and show the player + enemies
+		//If the game state is 1, hide the player, enemies, and show the title screen
 		if (stateManager.getGameState() == 0) {
 			TitleLabel.setVisible(false);
 			for (MenuOption option : menuOptions) {
 				option.optionLabel.setVisible(false);
 			}
 			PlayerLabel.setVisible(true);
-		} else {
+			for(Ship enemy : enemies) {
+				enemy.ShipLabel.setVisible(true);
+			}
+		} else if (stateManager.getGameState() == 1){
 			TitleLabel.setVisible(true);
 			for (MenuOption option : menuOptions) {
 				option.optionLabel.setVisible(true);
 			}
 			PlayerLabel.setVisible(false);
+			for(Ship enemy : enemies) {
+				enemy.ShipLabel.setVisible(false);
+			}
 		}
 	}
 

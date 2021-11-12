@@ -8,6 +8,7 @@ public class Projectile extends Sprite implements Runnable{
 	protected Boolean isVisible, isActive;
 	private Thread t;
 	public JLabel ProjectileLabel;
+	protected Boolean isPlayerProjectile;
 	
 	public int getDamage() { return damage; }
 	
@@ -52,15 +53,15 @@ public class Projectile extends Sprite implements Runnable{
 	}
 	
 	//Setup the projectile label and position
-	public void ActivateProjectile(Ship playerShip) {
+	public void ActivateProjectile(Ship ship, Boolean isPlayerProjectile) {
 		ImageIcon ProjectileImage;
 		ProjectileLabel = new JLabel();
 		ProjectileImage = new ImageIcon(getClass().getResource(graphicFile));
 		ProjectileLabel.setIcon(ProjectileImage);
 		ProjectileLabel.setSize(this.getWidth(), this.getHeight());
-		this.setX(playerShip.getX());
-		this.setY(playerShip.getY());
+		this.SetVectors(ship.getX(), ship.getY());
 		ProjectileLabel.setLocation(this.getX(), this.getY());
+		this.isPlayerProjectile = isPlayerProjectile;
 		MoveProjectile();
 	}
 	
@@ -83,7 +84,11 @@ public class Projectile extends Sprite implements Runnable{
 			int tx = this.x;
 			
 			//Move along the x axis
-			tx += GameProperties.CHARACTER_STEP;				
+			if (isPlayerProjectile) {
+				tx += GameProperties.CHARACTER_STEP;								
+			} else {
+				tx -= GameProperties.CHARACTER_STEP;	
+			}
 			
 			//Destroy projectile if off-screen
 			if ( tx > (GameProperties.SCREEN_WIDTH) || tx < 0) {
@@ -101,5 +106,24 @@ public class Projectile extends Sprite implements Runnable{
 		}
 		
 	}
+	
+//	private void detectPlayerCollision(Ship playerShip, JLabel playerLabel) {
+//		if (this.r.intersects(playerShip.getRectangle())) {
+//			System.out.println("Boom!");
+//			this.isActive = false;
+//			playerLabel.setIcon( new ImageIcon( getClass().getResource(".png") ));
+//			DoctorLabel.setIcon( new ImageIcon( getClass().getResource("redDw12.png") ));
+//		}
+//	}
+//	
+//	private void detectEnemyCollision() {
+//		if (this.r.intersects(myDoctor.getRectangle())) {
+//			System.out.println("Boom!");
+//			this.moving = false;
+//			animationButton.setText("Run");
+//			TardisLabel.setIcon( new ImageIcon( getClass().getResource("redTardis.png") ));
+//			DoctorLabel.setIcon( new ImageIcon( getClass().getResource("redDw12.png") ));
+//		}
+//	}
 
 }
