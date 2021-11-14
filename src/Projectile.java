@@ -1,3 +1,5 @@
+import java.util.List;
+
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 
@@ -9,6 +11,8 @@ public class Projectile extends Sprite implements Runnable{
 	private Thread t;
 	public JLabel ProjectileLabel;
 	protected Boolean isPlayerProjectile;
+	protected List<Ship> enemyList;
+	protected Ship playerShip;
 	
 	public int getDamage() { return damage; }
 	
@@ -31,19 +35,22 @@ public class Projectile extends Sprite implements Runnable{
 	public void setIsActive(Boolean isActive) { this.isActive = isActive; }
 	
 	public Projectile() {
-		super(32,32, "Projectile01.png");
+		super(24, 10, "Projectile01.png");
 		this.damage = 1;
 		this.speed = 20;
 		this.graphicFile = "Projectile01.png";
 		this.isVisible = true;
+		this.isActive = true;
 	}
 	
-	public Projectile(int dmg, int spd, String sprite) {
-		super(32,32, sprite);
+	public Projectile(int dmg, int spd, String sprite, Boolean isPlayerProjectile) {
+		super(24, 10, sprite);
 		this.damage = dmg;
 		this.speed = spd;
 		this.graphicFile = sprite;
 		this.isVisible = true;
+		this.isActive = true;
+		this.isPlayerProjectile = isPlayerProjectile;
 	}
 	
 	//Start the projectile thread
@@ -53,15 +60,18 @@ public class Projectile extends Sprite implements Runnable{
 	}
 	
 	//Setup the projectile label and position
-	public void ActivateProjectile(Ship ship, Boolean isPlayerProjectile) {
+	public void ActivateProjectile(Ship ship) {
 		ImageIcon ProjectileImage;
 		ProjectileLabel = new JLabel();
 		ProjectileImage = new ImageIcon(getClass().getResource(graphicFile));
 		ProjectileLabel.setIcon(ProjectileImage);
 		ProjectileLabel.setSize(this.getWidth(), this.getHeight());
-		this.SetVectors(ship.getX(), ship.getY());
+		if (isPlayerProjectile) {
+			this.SetVectors(ship.getX() + 12, ship.getY() + 10);			
+		} else {
+			this.SetVectors(ship.getX() - 12, ship.getY() + 10);
+		}
 		ProjectileLabel.setLocation(this.getX(), this.getY());
-		this.isPlayerProjectile = isPlayerProjectile;
 		MoveProjectile();
 	}
 	
@@ -69,12 +79,12 @@ public class Projectile extends Sprite implements Runnable{
 	public void DestroySelf() {
 		this.isVisible = false;
 		this.isActive = false;
+		ProjectileLabel.setVisible(false);
 	}
 	
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
-		this.isActive = true;
 		
 		ProjectileLabel.setIcon( new ImageIcon( getClass().getResource(graphicFile)));
 		
@@ -85,9 +95,11 @@ public class Projectile extends Sprite implements Runnable{
 			
 			//Move along the x axis
 			if (isPlayerProjectile) {
-				tx += GameProperties.CHARACTER_STEP;								
+				tx += GameProperties.CHARACTER_STEP;	
+				this.detectEnemyCollision(enemyList);
 			} else {
 				tx -= GameProperties.CHARACTER_STEP;	
+				this.detectPlayerCollision(playerShip, playerShip.ShipLabel);
 			}
 			
 			//Destroy projectile if off-screen
@@ -107,23 +119,27 @@ public class Projectile extends Sprite implements Runnable{
 		
 	}
 	
-//	private void detectPlayerCollision(Ship playerShip, JLabel playerLabel) {
-//		if (this.r.intersects(playerShip.getRectangle())) {
-//			System.out.println("Boom!");
-//			this.isActive = false;
-//			playerLabel.setIcon( new ImageIcon( getClass().getResource(".png") ));
-//			DoctorLabel.setIcon( new ImageIcon( getClass().getResource("redDw12.png") ));
-//		}
-//	}
-//	
-//	private void detectEnemyCollision() {
-//		if (this.r.intersects(myDoctor.getRectangle())) {
-//			System.out.println("Boom!");
-//			this.moving = false;
-//			animationButton.setText("Run");
-//			TardisLabel.setIcon( new ImageIcon( getClass().getResource("redTardis.png") ));
-//			DoctorLabel.setIcon( new ImageIcon( getClass().getResource("redDw12.png") ));
-//		}
-//	}
+	private void detectPlayerCollision(Ship playerShip, JLabel playerLabel) {
+		if (this.r.intersects(playerShip.getRectangle())) {
+			this.isActive = false;
+			playerShip.healthManager.TakeDamage(damage);
+			this.DestroySelf();
+		}
+	}
+	
+	private void detectEnemyCollision(List<Ship> enemyList) {
+		if (enemyList.size() > 0) {			
+			for(Ship enemy : enemyList) {
+				//If the projectile comes into contact with an enemy from the enemy list, and the enemy is visible; damage the enemy and destroy this projectile
+				if (this.r.intersects(enemy.getRectangle())) {
+					if (enemy.ShipLabel.isVisible()) {
+						this.isActive = false;
+						enemy.healthManager.TakeDamage(damage);
+						this.DestroySelf();					
+					}
+				}
+			}
+		}
+	}
 
 }

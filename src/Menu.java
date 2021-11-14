@@ -23,7 +23,7 @@ public class Menu {
 		this.options = options;
 	}
 	
-	//Update the menu options current sprite if it is selected, otherwise set the sprite to the default sprite
+	//Update the menu option's current sprite if it is selected, otherwise set the sprite to the default sprite
 	public void UpdateOptionLabel() {
 		for(int i = 0; i <= optionCount - 1; i++) {
 			MenuOption option = options.get(i);
