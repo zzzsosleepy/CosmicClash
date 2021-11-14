@@ -1,11 +1,20 @@
 //||=================================================================||
 //||-----------------------------------------------------------------||
-//||---------------------COSMIC CLASH--------------------------------||
+//||----------------------COSMIC CLASH-------------------------------||
 //||------------------BY: JEFFREY CHIPMAN----------------------------||
 //||-----------------------------------------------------------------||
 //||----------------PROG2200 - GAME PROJECT 1------------------------||
-//||-----------------------------------------------------------------||
+//||------------------------CONTROLS---------------------------------||
+//||------------PRESS A TO SHOOT AND SPACE TO CONFIRM----------------||
 //||=================================================================||
+
+
+//KNOWN BUGS-----------------------------------------------------------
+//Enemies ignore top barrier after first enemy in array is destroyed
+//Sometimes enemies will move twice as fast after the player dies and tries to retry the level
+//A single projectile can potentially kill two enemies at once if both enemies move into the projectile at the same time (feature???)
+//Enemies can sometimes have the wrong X and Y coordinates when the level is reset
+//---------------------------------------------------------------------
 
 
 import java.awt.Color;
@@ -20,6 +29,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
+import javax.swing.JOptionPane;
 
 public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 	private static final long serialVersionUID = -5095419774985539830L;
@@ -32,6 +42,7 @@ public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 	private Menu titleMenu;
 	private Clouds clouds;
 	private ClearScreen clearScreen;
+	private FailScreen failScreen;
 	private MenuOption playOption;
 	private MenuOption exitOption;
 	private Thread mainThread;
@@ -55,8 +66,8 @@ public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 	private JLayeredPane layeredPane;
 	
 	//Labels to show the graphics
-	private JLabel PlayerLabel, WindowGUILabel, WindowBGLabel, TitleLabel, CloudLabel, ClearLabel;
-	private ImageIcon PlayerImage, WindowGUIImage, WindowBGImage, TitleImage, CloudImage, ClearImage;
+	private JLabel PlayerLabel, WindowGUILabel, WindowBGLabel, TitleLabel, CloudLabel, ClearLabel, FailLabel;
+	private ImageIcon PlayerImage, WindowGUIImage, WindowBGImage, TitleImage, CloudImage, ClearImage, FailImage;
 	
 	//Container to hold graphics
 	private Container content;
@@ -85,13 +96,13 @@ public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 		//Set up all graphical labels
 		LabelSetup();
 		
-		//Create enemies using a 2D array
-		InstantiateEnemies(2, 1, "EnemyShip01.png", "EnemyShip01_Hurt.png", playerProjectileSpeed * 3);
-		
-		enemyShotManager = new EnemyShotManager(enemies, layeredPane, stateManager);
-		enemyShotManager.Activate();
 		//Create block barrier using 2D array
 		InstantiateBlocks();
+		
+		//Create enemies using a 2D array
+		InstantiateEnemies(2, 1, "EnemyShip01.png", "EnemyShip01_Hurt.png", playerProjectileSpeed * 3);
+		enemyShotManager = new EnemyShotManager(enemies, layeredPane, stateManager);
+		enemyShotManager.Activate();
 		
 		//Assign the container content to the content pane and set it's background to gray, and layout to null
 		content = getContentPane();
@@ -99,26 +110,13 @@ public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 		setLayout(null);
 		
 		//Set storage class vectors
-		windowBG.SetVectors(0,0);
-		windowGUI.SetVectors(0,0);
-		clouds.SetVectors(0,0);
-		clearScreen.SetVectors(32, 128);
-		gameTitle.SetVectors((GameProperties.SCREEN_WIDTH / 2) - (gameTitle.getWidth() / 2) - 8, 96);
-		playerShip.SetVectors(48, 186);
+		SetStorageVectors();
 		
 		//Add the player and GUI elements to the layeredpane
 		LayeredPaneSetup();
 		
 		//Update the label positions to match the stored values
-		PlayerLabel.setLocation(playerShip.getX(), playerShip.getY());
-		WindowGUILabel.setLocation(windowGUI.getX(), windowGUI.getY());
-		CloudLabel.setLocation(clouds.getX(), clouds.getY());
-		ClearLabel.setLocation(clearScreen.getX(), clearScreen.getY());
-		TitleLabel.setLocation(gameTitle.getX(), gameTitle.getY());
-		WindowBGLabel.setLocation(windowBG.getX(), windowBG.getY());
-		for (MenuOption option : menuOptions) {
-			option.optionLabel.setLocation(option.getX(), option.getY());
-		}
+		UpdateLabelPositions();
 		
 		//Add a keylistener to the content container and allow it to be focusable
 		content.addKeyListener(this);
@@ -126,6 +124,73 @@ public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 		
 		//JFrame default close
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	}
+	
+	//--------------------------------------------------------------------------------------------------------------
+	//Label & Title Setup-------------------------------------------------------------------------------------------
+	
+	//Create all labels and label images
+	private void LabelSetup() {
+		//BG setup
+		windowBG = new BG();
+		WindowBGLabel = new JLabel();
+		WindowBGImage = new ImageIcon(getClass().getResource(windowBG.getFilename()));
+		WindowBGLabel.setIcon(WindowBGImage);
+		WindowBGLabel.setSize(windowBG.getWidth(), windowBG.getHeight());
+		
+		//Cloud setup
+		clouds = new Clouds();
+		CloudLabel = new JLabel();
+		CloudImage = new ImageIcon(getClass().getResource(clouds.getFilename()));
+		CloudLabel.setIcon(CloudImage);
+		CloudLabel.setSize(clouds.getWidth(), clouds.getHeight());
+		
+		//GUI setup
+		windowGUI = new WindowBorderGUI();
+		WindowGUILabel = new JLabel();
+		WindowGUIImage = new ImageIcon(getClass().getResource(windowGUI.getFilename()));
+		WindowGUILabel.setIcon(WindowGUIImage);
+		WindowGUILabel.setSize(windowGUI.getWidth(), windowGUI.getHeight());
+
+		//Clear screen setup
+		clearScreen = new ClearScreen();
+		ClearLabel = new JLabel();
+		ClearImage = new ImageIcon(getClass().getResource(clearScreen.getFilename()));
+		ClearLabel.setIcon(ClearImage);
+		ClearLabel.setSize(clearScreen.getWidth(), clearScreen.getHeight());
+		ClearLabel.setVisible(false);
+		
+		//Fail screen setup
+		failScreen = new FailScreen();
+		FailLabel = new JLabel();
+		FailImage = new ImageIcon(getClass().getResource(failScreen.getFilename()));
+		FailLabel.setIcon(FailImage);
+		FailLabel.setSize(failScreen.getWidth(), failScreen.getHeight());
+		FailLabel.setVisible(false);
+		
+		
+		//Player setup
+		PlayerLabel = new JLabel();
+		playerShip = new Ship(5,1,"Ship01.png", "Ship01_Hurt.png", playerProjectileSpeed, "Projectile01.png", PlayerLabel, stateManager);
+		playerShip.enemyList = enemies;
+		PlayerLabel.setVisible(false);
+		PlayerImage = new ImageIcon(getClass().getResource(playerShip.getFilename()));
+		PlayerLabel.setIcon(PlayerImage);
+		PlayerLabel.setSize(playerShip.getWidth(), playerShip.getHeight());
+	}
+	
+	//Update the label positions to match the stored values
+	private void UpdateLabelPositions() {
+		PlayerLabel.setLocation(playerShip.getX(), playerShip.getY());
+		WindowGUILabel.setLocation(windowGUI.getX(), windowGUI.getY());
+		CloudLabel.setLocation(clouds.getX(), clouds.getY());
+		ClearLabel.setLocation(clearScreen.getX(), clearScreen.getY());
+		FailLabel.setLocation(failScreen.getX(), failScreen.getY());
+		TitleLabel.setLocation(gameTitle.getX(), gameTitle.getY());
+		WindowBGLabel.setLocation(windowBG.getX(), windowBG.getY());
+		for (MenuOption option : menuOptions) {
+			option.optionLabel.setLocation(option.getX(), option.getY());
+		}
 	}
 	
 	//Create title labels and create the title menu
@@ -150,55 +215,27 @@ public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 			option.optionLabel.setIcon(option.optionIcon);
 			option.optionLabel.setSize(option.getWidth(), option.getHeight());
 		}
-		//Alternative ArrayList for each method
-		//menuOptions.forEach(option -> option.optionLabel = new JLabel());
 		
 		//Create new menu populated with each option in the menuOptions list, and then update the menu's display
 		titleMenu = new Menu(0, menuOptions);
 		titleMenu.UpdateOptionLabel();
 	}
 	
-	//Create all labels and label images
-	private void LabelSetup() {
-		//BG setup
-		windowBG = new BG();
-		WindowBGLabel = new JLabel();
-		WindowBGImage = new ImageIcon(getClass().getResource(windowBG.getFilename()));
-		WindowBGLabel.setIcon(WindowBGImage);
-		WindowBGLabel.setSize(windowBG.getWidth(), windowBG.getHeight());
-		
-		//Cloud setup
-		clouds = new Clouds();
-		CloudLabel = new JLabel();
-		CloudImage = new ImageIcon(getClass().getResource(clouds.getFilename()));
-		CloudLabel.setIcon(CloudImage);
-		CloudLabel.setSize(clouds.getWidth(), clouds.getHeight());
-		
-		//GUI setup
-		windowGUI = new WindowBorderGUI();
-		WindowGUILabel = new JLabel();
-		WindowGUIImage = new ImageIcon(getClass().getResource(windowGUI.getFilename()));
-		WindowGUILabel.setIcon(WindowGUIImage);
-		WindowGUILabel.setSize(windowGUI.getWidth(), windowGUI.getHeight());
-		
-		//Clear screen setup
-		clearScreen = new ClearScreen();
-		ClearLabel = new JLabel();
-		ClearImage = new ImageIcon(getClass().getResource(clearScreen.getFilename()));
-		ClearLabel.setIcon(ClearImage);
-		ClearLabel.setSize(clearScreen.getWidth(), clearScreen.getHeight());
-		ClearLabel.setVisible(false);
-		
-		
-		//Player setup
-		PlayerLabel = new JLabel();
-		playerShip = new Ship(5,1,"Ship01.png", "Ship01_Hurt.png", playerProjectileSpeed, true, "Projectile01.png", PlayerLabel);
-		playerShip.enemyList = enemies;
-		PlayerLabel.setVisible(false);
-		PlayerImage = new ImageIcon(getClass().getResource(playerShip.getFilename()));
-		PlayerLabel.setIcon(PlayerImage);
-		PlayerLabel.setSize(playerShip.getWidth(), playerShip.getHeight());
+	//Set storage class vectors
+	private void SetStorageVectors() {
+		windowBG.SetVectors(0,0);
+		windowGUI.SetVectors(0,0);
+		clouds.SetVectors(0,0);
+		clearScreen.SetVectors(32, 128);
+		failScreen.SetVectors(32, 128);
+		gameTitle.SetVectors((GameProperties.SCREEN_WIDTH / 2) - (gameTitle.getWidth() / 2) - 8, 96);
+		playerShip.SetVectors(48, 186);
 	}
+	
+	//--------------------------------------------------------------------------------------------------------------
+	
+	//--------------------------------------------------------------------------------------------------------------
+	//Instatiate Enemies & Blocks-----------------------------------------------------------------------------------
 	
 	//Enemy creation using 2D array
 	private void InstantiateEnemies(int health, int damage, String defaultSprite, String hurtSprite, int projectileSpeed) {
@@ -222,10 +259,11 @@ public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 		}
 	}
 	
-	//LayeredPane is used to implement z-ordering for labels (depth must be an integer, changing dynamically must be an int)
-	private void AddToLayeredPane(JLabel label, int zDepth) {
-		layeredPane.add(label, Integer.valueOf(zDepth));
-	}
+	//--------------------------------------------------------------------------------------------------------------
+	
+	
+	//--------------------------------------------------------------------------------------------------------------
+	//Layered Panes-------------------------------------------------------------------------------------------------
 	
 	//Add the layeredpane to the JFrame, position menu options, and add elements to layeredpane
 	private void LayeredPaneSetup() {
@@ -248,10 +286,21 @@ public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 		AddToLayeredPane(TitleLabel, 99);
 		AddToLayeredPane(CloudLabel, 98);
 		AddToLayeredPane(ClearLabel, 99);
+		AddToLayeredPane(FailLabel, 99);
 		
 		//Add the player label to the layered pane
 		AddToLayeredPane(PlayerLabel, 5);
 	}
+	
+	//LayeredPane is used to implement z-ordering for labels (depth must be an integer, changing dynamically must be an int)
+	private void AddToLayeredPane(JLabel label, int zDepth) {
+		layeredPane.add(label, Integer.valueOf(zDepth));
+	}
+	
+	//--------------------------------------------------------------------------------------------------------------
+	
+	//--------------------------------------------------------------------------------------------------------------
+	//OBJECT CREATION-----------------------------------------------------------------------------------------------
 	
 	//Creates a block at specific x, y coordinates and adds them to the block array
 	public void CreateBlock(int x, int y) {
@@ -304,6 +353,8 @@ public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 		EnemyLabel.setLocation(enemy.getX(), enemy.getY());
 	}
 	
+	//--------------------------------------------------------------------------------------------------------------
+	
 	//Main method
 	public static void main(String[] args) {
 		GamePrep1 myGame = new GamePrep1();
@@ -314,6 +365,26 @@ public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 	public void keyTyped(KeyEvent e) {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	
+	//--------------------------------------------------------------------------------------------------------------
+	//Input Management----------------------------------------------------------------------------------------------
+	
+	//Input handling
+	@Override
+	public void keyPressed(KeyEvent e) {
+			//Handle all player movement based on input
+			PlayerMovement(e);	
+			
+			//Handle title movement based on input
+			TitleMovement(e);
+			
+			//Handle clear screen movement
+			ClearScreenMovement(e);
+			
+			//Handle fail screen movement
+			FailScreenMovement(e);
 	}
 	
 	//Control player movement based on key input and update the ship's location
@@ -347,17 +418,18 @@ public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 			
 			//Update player label location
 			playerShip.Move(dy);
-		}
-		//FIRE KEY
-		if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-			if(playerShip.canShoot) {
-				Projectile createdBullet = playerShip.Fire();
-				//Increment the shot count everytime the player shoots
-				GameProperties.SHOT_COUNT++;
-				//Add the projectile to the layered pane
-				layeredPane.add(createdBullet.ProjectileLabel, Integer.valueOf(3));
+			//FIRE KEY
+			if (e.getKeyCode() == KeyEvent.VK_A) {
+				if(playerShip.canShoot) {
+					Projectile createdBullet = playerShip.Fire();
+					//Increment the shot count everytime the player shoots
+					GameProperties.SHOT_COUNT++;
+					//Add the projectile to the layered pane
+					layeredPane.add(createdBullet.ProjectileLabel, Integer.valueOf(3));
+				}
 			}
 		}
+
 	}
 	
 	//Control title movement based on key input
@@ -421,7 +493,7 @@ public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 						GameProperties.CURRENT_LEVEL = 3;
 						break;
 					case 3:
-						GameProperties.CURRENT_LEVEL = 1;
+						GameProperties.CURRENT_LEVEL = 4;
 						break;
 					default:
 						GameProperties.CURRENT_LEVEL = 1;
@@ -432,6 +504,100 @@ public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 			}
 		}
 	}
+	
+	//Handle input on the Fail Screen
+	public void FailScreenMovement(KeyEvent e) {
+		//If state is dead
+		if (stateManager.getGameState() == 4) {
+			if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+				FailLabel.setVisible(false);
+				stateManager.setGameState(1);
+				ResetLevel();
+			}
+		}
+	}
+	
+	//--------------------------------------------------------------------------------------------------------------
+	
+	
+	//--------------------------------------------------------------------------------------------------------------
+	//Level Settings------------------------------------------------------------------------------------------------
+	
+	//Reset the current level, setting the player's health to maximum and respawning all enemies
+	//State is set back to gameplay
+	public void ResetLevel() {
+		playerShip.healthManager.setCurrentHealth(playerShip.healthManager.getMaxHealth());
+		playerShip.canShoot = true;
+	    Iterator<Ship> itr = enemies.iterator();
+	    while (itr.hasNext()) {
+	      Ship ship = itr.next();
+	      if (ship.ShipLabel.isVisible()) {
+	    	  ship.ShipLabel.setVisible(false);
+	        itr.remove();
+	      }
+	    }
+		playerShip.healthManager.setIsAlive(true);
+		playerShip.ShipLabel.setVisible(true);
+		stateManager.setGameState(1);
+		ChangeLevel(GameProperties.CURRENT_LEVEL);
+	}
+	
+	//Changes the current level, BG image
+	public void ChangeLevel(int levelNumber) {
+		//Set the player's health back to maximum
+		playerShip.healthManager.setCurrentHealth(playerShip.healthManager.getMaxHealth());
+		
+		//Update the background image, instantiate enemies, and make them visible
+		switch(levelNumber) {
+		case 1:
+			windowBG.setFilename("BG01.png");
+			InstantiateEnemies(2, 1, "EnemyShip01.png", "EnemyShip01_Hurt.png", playerProjectileSpeed * 3);
+			for(Ship enemy : enemies) {
+				enemy.ShipLabel.setVisible(true);
+			}
+			break;
+		case 2:
+			windowBG.setFilename("BG02.png");
+			InstantiateEnemies(2, 1, "EnemyShip02.png", "EnemyShip01_Hurt.png", playerProjectileSpeed * 2);
+			for(Ship enemy : enemies) {
+				enemy.ShipLabel.setVisible(true);
+			}
+			break;
+		case 3:
+			windowBG.setFilename("BG03.png");
+			InstantiateEnemies(3, 1, "Alien01.png", "Alien01_Hurt.png", playerProjectileSpeed * 2);
+			for(Ship enemy : enemies) {
+				enemy.ShipLabel.setVisible(true);
+			}
+			break;
+		//Case 4 is the end of the game and will prompt for the player's name and display their score
+		//The game will exit afterwards
+		case 4:
+			String name = JOptionPane.showInputDialog("Enter player name:");
+			GameProperties.PLAYER_NAME = name;
+			String message = String.format("Player %s fired %s shots and scored %s points!", GameProperties.PLAYER_NAME, GameProperties.SHOT_COUNT, GameProperties.PLAYER_SCORE);
+			JOptionPane.showMessageDialog(null, message);
+			SQL sql = new SQL();
+			System.exit(0);
+		default:
+			windowBG.setFilename("BG01.png");
+			InstantiateEnemies(2, 1, "EnemyShip01.png", "EnemyShip01_Hurt.png", playerProjectileSpeed * 3);
+			for(Ship enemy : enemies) {
+				enemy.ShipLabel.setVisible(true);
+			}
+			break;
+		}
+		//Start the main thread
+		mainThread = new Thread(this, "Main Game Thread");
+		mainThread.start();
+		//Activate the enemy shooting "AI"
+		enemyShotManager.Activate();
+		//Update the BG image
+		WindowBGImage = new ImageIcon(getClass().getResource(windowBG.getFilename()));
+		WindowBGLabel.setIcon(WindowBGImage);
+	}
+	
+	//--------------------------------------------------------------------------------------------------------------
 	
 	//Toggles the display of the title labels and player label depending on the current game state
 	public void ToggleTitle() {
@@ -473,68 +639,20 @@ public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 	      Ship ship = itr.next();
 	      if (!ship.ShipLabel.isVisible()) {
 	        itr.remove();
+	      } else {
+	    	  int moveY = ship.getY();
+	    	  if (movingUp) {
+	    		  moveY -= GameProperties.CHARACTER_STEP;
+	    	  } else {
+	    		  moveY += GameProperties.CHARACTER_STEP;
+	    	  }
+	    	  ship.Move(moveY);
 	      }
 	    }
-		//For each enemy in the enemies array...
-		for(Ship enemy : enemies) {
-			if (enemy != null) {
-				//Store their Y position
-				int moveY = enemy.getY();
-				if (movingUp) {
-					//Prepare to move up one step
-					moveY -= GameProperties.CHARACTER_STEP;
-				} else {
-					//Prepare to move down one step
-					moveY += GameProperties.CHARACTER_STEP;
-				}
-				//Initiate movement
-				enemy.Move(moveY);				
-			}
-		}
 	}
 	
-	//Changes the current level, BG image
-	public void ChangeLevel(int levelNumber) {
-		//Update the background image, instantiate enemies, and make them visible
-		switch(levelNumber) {
-		case 1:
-			windowBG.setFilename("BG01.png");
-			InstantiateEnemies(2, 1, "EnemyShip01.png", "EnemyShip01_Hurt.png", playerProjectileSpeed * 3);
-			for(Ship enemy : enemies) {
-				enemy.ShipLabel.setVisible(true);
-			}
-			break;
-		case 2:
-			windowBG.setFilename("BG02.png");
-			InstantiateEnemies(3, 1, "EnemyShip02.png", "EnemyShip01_Hurt.png", playerProjectileSpeed * 2);
-			for(Ship enemy : enemies) {
-				enemy.ShipLabel.setVisible(true);
-			}
-			break;
-		case 3:
-			windowBG.setFilename("BG03.png");
-			InstantiateEnemies(4, 1, "EnemyShip03.png", "EnemyShip01_Hurt.png", playerProjectileSpeed);
-			for(Ship enemy : enemies) {
-				enemy.ShipLabel.setVisible(true);
-			}
-			break;
-		default:
-			windowBG.setFilename("BG01.png");
-			InstantiateEnemies(2, 1, "EnemyShip01.png", "EnemyShip01_Hurt.png", playerProjectileSpeed * 3);
-			for(Ship enemy : enemies) {
-				enemy.ShipLabel.setVisible(true);
-			}
-			break;
-		}
-		//Start the main thread
-		mainThread = new Thread(this, "Main Game Thread");
-		mainThread.start();
-		//Activate the enemy shooting "AI"
-		enemyShotManager.Activate();
-		//Update the BG image
-		WindowBGImage = new ImageIcon(getClass().getResource(windowBG.getFilename()));
-		WindowBGLabel.setIcon(WindowBGImage);
-	}
+	//--------------------------------------------------------------------------------------------------------------
+	//Hide Screens--------------------------------------------------------------------------------------------------
 	
 	//Hides the Clear Screen GUI
 	public void HideClearScreen() {
@@ -548,24 +666,19 @@ public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 		ClearImage = new ImageIcon(getClass().getResource(clearScreen.getFilename()));
 		ClearLabel.setIcon(ClearImage);
 	}
+	
+	//--------------------------------------------------------------------------------------------------------------
 
-	//Input handling
-	@Override
-	public void keyPressed(KeyEvent e) {
-			//Handle all player movement based on input
-			PlayerMovement(e);	
-			
-			//Handle title movement based on input
-			TitleMovement(e);
-			
-			//Handle clear screen movement
-			ClearScreenMovement(e);
-	}
 
+	//--------------------------------------------------------------------------------------------------------------
+	//UNUSED--------------------------------------------------------------------------------------------------------
+	
 	@Override
 	public void keyReleased(KeyEvent e) {
 		// TODO Auto-generated method stub
 	}
+	
+	//--------------------------------------------------------------------------------------------------------------
 
 	@Override
 	public void run() {
@@ -593,6 +706,17 @@ public class GamePrep1 extends JFrame implements KeyListener, Runnable{
 				Thread.sleep(1500);
 				//Update the clear screen image and display it
 				ChangeClearScreenSprite("ClearScreen_Continue.png");
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		while (stateManager.getGameState() == 4) {
+			//Show the fail screen
+			FailLabel.setVisible(true);
+			try {
+				Thread.sleep(200);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

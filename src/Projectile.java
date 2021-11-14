@@ -1,3 +1,4 @@
+import java.util.Iterator;
 import java.util.List;
 
 import javax.swing.ImageIcon;
@@ -119,6 +120,7 @@ public class Projectile extends Sprite implements Runnable{
 		
 	}
 	
+	//Detect collision with a playership and deal damage to it, and destroy this projectile.
 	private void detectPlayerCollision(Ship playerShip, JLabel playerLabel) {
 		if (this.r.intersects(playerShip.getRectangle())) {
 			this.isActive = false;
@@ -127,19 +129,21 @@ public class Projectile extends Sprite implements Runnable{
 		}
 	}
 	
+	//Detect collision with an enemy and deal damage to it if it is visible
 	private void detectEnemyCollision(List<Ship> enemyList) {
-		if (enemyList.size() > 0) {			
-			for(Ship enemy : enemyList) {
-				//If the projectile comes into contact with an enemy from the enemy list, and the enemy is visible; damage the enemy and destroy this projectile
-				if (this.r.intersects(enemy.getRectangle())) {
-					if (enemy.ShipLabel.isVisible()) {
+		if (enemyList.size() > 0) {	
+		    Iterator<Ship> itr = enemyList.iterator();
+		    while (itr.hasNext()) {
+		      Ship ship = itr.next();
+		      //If the projectile comes into contact with an enemy from the enemy list, and the enemy is visible; damage the enemy and destroy this projectile
+		      if (this.r.intersects(ship.getRectangle())) {
+					if (ship.ShipLabel.isVisible()) {
 						this.isActive = false;
-						enemy.healthManager.TakeDamage(damage);
+						ship.healthManager.TakeDamage(damage);
 						this.DestroySelf();					
 					}
-				}
-			}
+		      }
+		    }
 		}
 	}
-
 }

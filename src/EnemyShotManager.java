@@ -14,6 +14,7 @@ public class EnemyShotManager implements Runnable{
 		this.stateManager = stateManager;
 	}
 	
+	//Activate the shooting thread
 	public void Activate() {
 		isActive = true;
 		shotThread = new Thread(this, "Enemy Shot Manager Thread");
@@ -24,6 +25,8 @@ public class EnemyShotManager implements Runnable{
 	public void run() {
 		// TODO Auto-generated method stub
 		while (isActive) {
+			//If the game state is gameplay and the enemies array has more than 0 items
+			//Randomly fire a shot from one of the enemies in the array every x seconds
 			if (stateManager.getGameState() == 1) {
 				if (enemies.size() > 0) {
 					int randNum = GameProperties.RandomRange(0, enemies.size());

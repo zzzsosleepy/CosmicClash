@@ -7,6 +7,7 @@ public class ShipHealthManager implements Runnable{
 	protected String defaultSprite;
 	protected String hurtSprite;
 	protected Ship parentShip;
+	protected GameStateManager stateManager;
 	
 	public String getDefaultSprite() { return defaultSprite; }
 	public void setDefaultSprite(String defaultSprite) { this.defaultSprite = defaultSprite; }
@@ -38,6 +39,11 @@ public class ShipHealthManager implements Runnable{
 	public Ship getParentShip() { return parentShip; }
 	public void setParentShip(Ship parentShip) { this.parentShip = parentShip; }	
 	
+	public GameStateManager getStateManager() { return stateManager; }
+	public void setStateManager(GameStateManager stateManager) { this.stateManager = stateManager; }
+
+
+
 	protected JLabel shipLabel;
 	protected Boolean isAlive = true;
 	
@@ -53,7 +59,19 @@ public class ShipHealthManager implements Runnable{
 		this.shipLabel = shipLabel;
 		this.parentShip = parentShip;
 	}
+	
+	public ShipHealthManager(int maxHealth, String defaultSprite, String hurtSprite, JLabel shipLabel, Ship parentShip, GameStateManager stateManager) {
+		this.currentHealth = maxHealth;
+		this.maxHealth = maxHealth;
+		this.defaultSprite = defaultSprite;
+		this.hurtSprite = hurtSprite;
+		this.shipLabel = shipLabel;
+		this.parentShip = parentShip;
+		this.stateManager = stateManager;
+	}
 
+	//Deal damage to the ship and make it flash
+	//If the health falls below 0, destroy the ship
 	public void TakeDamage(int damage) {
 		currentHealth -= damage;
 		isFlashing = true;
@@ -64,25 +82,21 @@ public class ShipHealthManager implements Runnable{
 		}
 	}
 	
-	public void Heal(int amount) {
-		currentHealth += amount;
-		if (currentHealth > maxHealth) {
-			currentHealth = maxHealth;
-		}
-	}
-	
+	//Destroy the ship. If it is the player, set the game state to dead
+	//If it is an enemy, increase the player score by 1
 	public void Die() {
 		shipLabel.setVisible(false);
 		isAlive = false;
 		if (parentShip.getIsPlayer()) {
 			//Player dies
-			System.out.println("Player has died");
+			stateManager.setGameState(4);
 		} else {
 			//Enemy dies
 			GameProperties.PLAYER_SCORE++;
 		}
 	}
 	
+	//Activate the flashing thread
 	public void Activate() {
 		isActive = true;
 		flashThread = new Thread(this, "Health flash thread");
@@ -93,6 +107,7 @@ public class ShipHealthManager implements Runnable{
 		// TODO Auto-generated method stub
 		while(isActive) {
 			try {
+				//Flash the hurt sprite
 				if (isFlashing) {
 					shipLabel.setIcon(new ImageIcon(getClass().getResource(hurtSprite)));
 				}

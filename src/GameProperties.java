@@ -6,6 +6,7 @@ public class GameProperties {
 	//Low character step allows for smaller movements
 	public static final int CHARACTER_STEP = 16;
 	
+	public static String PLAYER_NAME = "";
 	public static int PLAYER_SCORE = 0;
 	public static int SHOT_COUNT = 0;
 	public static int CURRENT_LEVEL = 1;

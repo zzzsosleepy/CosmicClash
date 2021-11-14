@@ -75,6 +75,22 @@ public class Ship extends Sprite implements Runnable{
 		ProjectileCooldown();
 	}
 	
+	//Take in state manager for handling player death
+	public Ship(int shipHealth, int projectileDamage, String graphicFile, String hurtGraphicFile, int bulletSpeed, String projectileGraphic, JLabel ShipLabel, GameStateManager stateManager) {
+		super(32, 32, graphicFile);
+		this.shipHealth = shipHealth;
+		this.projectileDamage = projectileDamage;
+		this.graphicFile = graphicFile;
+		this.hurtGraphicFile = hurtGraphicFile;
+		this.projectileGraphic = projectileGraphic;
+		this.projectileSpeed = bulletSpeed;
+		this.isPlayer = true;
+		this.ShipLabel = ShipLabel;
+		healthManager = new ShipHealthManager(shipHealth, graphicFile, hurtGraphicFile, ShipLabel, this, stateManager);			
+		//Force a cooldown when ship is created
+		ProjectileCooldown();
+	}
+	
 	//Create and shoot a bullet projectile, returning the created bullet
 	public Projectile Fire() {
 		Projectile bullet;
